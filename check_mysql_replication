@@ -1,0 +1,69 @@
+#!/bin/bash
+
+### VARIABLES ###### 
+DB_HOST=
+DB_USER=
+DB_PASSWORD=
+
+### SQL ###########
+SQL=`/usr/bin/mysql -u $DB_USER -p$DB_PASSWORD  -e "SHOW SLAVE STATUS\G;"`
+MYSQL_CHECK=$(/usr/bin/mysql -u $DB_USER -p$DB_PASSWORD -e "SHOW VARIABLES LIKE '%version%';" || echo 1)
+
+LAST_ERRNO=$(echo "$SQL" | grep "Last_Errno:" | awk '{ print $2 }') 
+LAST_ERROR=$(echo "$SQL" | grep "Last_Error:" | awk '{ print $2 }')
+SECONDS_BEHIND_MASTER=$(echo "$SQL" | grep "Seconds_Behind_Master:" | awk '{ print $2 }')
+IO_IS_RUNNING=$(echo "$SQL" | grep "Slave_IO_Running:" | awk '{ print $2 }')
+SQL_IS_RUNNING=$(echo "$SQL" | grep "Slave_SQL_Running:" | awk '{ print $2 }')
+ERRORS=()
+
+### Run Some Checks ###
+#echo MYSQL_CHEK: $MYSQL_CHECK;
+#echo LAST_ERRNO: $LAST_ERRNO;
+#echo SECONDS_BEHIND_MASTER: $SECONDS_BEHIND_MASTER;
+#echo IO_IS_RUNNING: $IO_IS_RUNNING;
+#echo SQL_IS_RUNNING: $SQL_IS_RUNNING;
+
+## Check if I can connect to Mysql ##
+if [ "$MYSQL_CHECK" == 1 ]
+then
+    ERRORS=("${ERRORS[@]}" "Can't connect to MySQL (Check Pass)")
+    echo "REPLICATION: Critical | Can't connect to MySQL;"
+    exit 2
+fi
+
+## Check For Last Error ##
+if [ "$LAST_ERRNO" != 0 ]
+then
+    ERRORS=("${ERRORS[@]}" "Error when processing relay log (Last_Errno)")
+    echo "REPLICATION: Warning | Last_Errno=$LAST_ERRNO; "
+    exit 1
+fi
+
+## Check if IO thread is running ##
+if [ "$IO_IS_RUNNING" != "Yes" ]
+then
+    ERRORS=("${ERRORS[@]}" "I/O thread for reading the master's binary log is not running (Slave_IO_Running)")
+    echo "REPLICATION: Critical | Slave_IO_Running=$IO_IS_RUNNING"
+    exit 2
+fi
+
+## Check for SQL thread ##
+if [ "$SQL_IS_RUNNING" != "Yes" ]
+then
+    ERRORS=("${ERRORS[@]}" "SQL thread for executing events in the relay log is not running (Slave_SQL_Running)")
+    echo "REPLICATION: Critical | Slave_SQL_Running=$SQL_IS_RUNNING"
+    exit 2
+fi
+
+## Check how slow the slave is ##
+if [ "$SECONDS_BEHIND_MASTER" == "0" ]
+then
+    ERRORS=("${ERRORS[@]}" "The Slave is reporting '0' (Seconds_Behind_Master)")
+    echo -n "REPLICATION: OK | Seconds_Behind_Master=$SECONDS_BEHIND_MASTER | Last_Error=$LAST_ERROR | Last_Errno=$LAST_ERRNO;"
+    exit 0
+elif [ "$SECONDS_BEHIND_MASTER" > 30 ]
+then
+    ERRORS=("${ERRORS[@]}" "The Slave is at least 30 seconds behind the master (Seconds_Behind_Master)")
+    echo "REPLICATION: Warning | Seconds_Behind_Master=$SECONDS_BEHIND_MASTER | Last_Error=$LAST_ERROR | Last_Errno=$LAST_ERRNO;"
+    exit 1
+fi
