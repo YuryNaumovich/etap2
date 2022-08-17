@@ -27,7 +27,7 @@ ERRORS=()
 if [ "$MYSQL_CHECK" == 1 ]
 then
     ERRORS=("${ERRORS[@]}" "Can't connect to MySQL (Check Pass)")
-    echo "REPLICATION: Critical | Can't connect to MySQL;"
+    echo "REPLICATION: Critical, Can't connect to MySQL;"
     exit 2
 fi
 
@@ -35,7 +35,7 @@ fi
 if [ "$LAST_ERRNO" != 0 ]
 then
     ERRORS=("${ERRORS[@]}" "Error when processing relay log (Last_Errno)")
-    echo "REPLICATION: Warning | Last_Errno=$LAST_ERRNO; "
+    echo "REPLICATION: Warning, Last_Errno:$LAST_ERRNO; "
     exit 1
 fi
 
@@ -43,7 +43,7 @@ fi
 if [ "$IO_IS_RUNNING" != "Yes" ]
 then
     ERRORS=("${ERRORS[@]}" "I/O thread for reading the master's binary log is not running (Slave_IO_Running)")
-    echo "REPLICATION: Critical | Slave_IO_Running=$IO_IS_RUNNING"
+    echo "REPLICATION: Critical, Slave_IO_Running:$IO_IS_RUNNING"
     exit 2
 fi
 
@@ -51,7 +51,7 @@ fi
 if [ "$SQL_IS_RUNNING" != "Yes" ]
 then
     ERRORS=("${ERRORS[@]}" "SQL thread for executing events in the relay log is not running (Slave_SQL_Running)")
-    echo "REPLICATION: Critical | Slave_SQL_Running=$SQL_IS_RUNNING"
+    echo "REPLICATION: Critical , Slave_SQL_Running:$SQL_IS_RUNNING"
     exit 2
 fi
 
@@ -59,11 +59,11 @@ fi
 if [ "$SECONDS_BEHIND_MASTER" == "0" ]
 then
     ERRORS=("${ERRORS[@]}" "The Slave is reporting '0' (Seconds_Behind_Master)")
-    echo -n "REPLICATION: OK | Seconds_Behind_Master=$SECONDS_BEHIND_MASTER | Last_Error=$LAST_ERROR | Last_Errno=$LAST_ERRNO;"
+    echo -n "REPLICATION: OK, Seconds_Behind_Master:$SECONDS_BEHIND_MASTER; Last_Error:$LAST_ERROR; Last_Errno:$LAST_ERRNO;"
     exit 0
 elif [ "$SECONDS_BEHIND_MASTER" > 30 ]
 then
     ERRORS=("${ERRORS[@]}" "The Slave is at least 30 seconds behind the master (Seconds_Behind_Master)")
-    echo "REPLICATION: Warning | Seconds_Behind_Master=$SECONDS_BEHIND_MASTER | Last_Error=$LAST_ERROR | Last_Errno=$LAST_ERRNO;"
+    echo "REPLICATION: Warning, Seconds_Behind_Master:$SECONDS_BEHIND_MASTER, Last_Error:$LAST_ERROR, Last_Errno:$LAST_ERRNO;"
     exit 1
 fi
