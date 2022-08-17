@@ -6,8 +6,8 @@ DB_USER=
 DB_PASSWORD=
 
 ### SQL ###########
-SQL=`/usr/bin/mysql -u $DB_USER -p$DB_PASSWORD  -e "SHOW SLAVE STATUS\G;"`
-MYSQL_CHECK=$(/usr/bin/mysql -u $DB_USER -p$DB_PASSWORD -e "SHOW VARIABLES LIKE '%version%';" || echo 1)
+SQL=`/usr/bin/mysql -u $DB_USER -p$DB_PASSWORD -h $DB_HOST -e "SHOW SLAVE STATUS\G;"`
+MYSQL_CHECK=$(/usr/bin/mysql -u $DB_USER -p$DB_PASSWORD -h $DB_HOST -e "SHOW VARIABLES LIKE '%version%';" || echo 1)
 
 LAST_ERRNO=$(echo "$SQL" | grep "Last_Errno:" | awk '{ print $2 }') 
 LAST_ERROR=$(echo "$SQL" | grep "Last_Error:" | awk '{ print $2 }')
